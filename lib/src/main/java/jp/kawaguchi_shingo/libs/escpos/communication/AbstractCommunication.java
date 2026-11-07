@@ -3,7 +3,6 @@ package jp.kawaguchi_shingo.libs.escpos.communication;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.ConnectException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -97,7 +96,7 @@ public abstract class AbstractCommunication {
 	/**
 	 * 同期的にステータスを要求し、応答を待ちます（スレッドセーフ）
 	 */
-	public byte[] request(byte[] requestCommand, long timeoutMillis) {
+	public byte[] request(byte[] command, long timeoutMillis) {
 		// ロックオブジェクトでメソッド全体を保護し、複数スレッドからの同時 request を防ぐ
 		synchronized (responseLock) {
 			if (os == null || !isRunning) {
@@ -111,7 +110,7 @@ public abstract class AbstractCommunication {
 
 			try {
 				// リクエストコマンドを送信（即時性を高めるため、同期送信またはflush）
-				os.write(requestCommand);
+				os.write(command);
 				os.flush();
 				System.out.println("ステータス要求コマンドを送信しました。");
 

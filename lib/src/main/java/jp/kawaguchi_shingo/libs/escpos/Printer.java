@@ -2,7 +2,6 @@ package jp.kawaguchi_shingo.libs.escpos;
 
 import android.content.Context;
 import android.hardware.usb.UsbDevice;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import jp.kawaguchi_shingo.libs.escpos.communication.AbstractCommunication;
 import jp.kawaguchi_shingo.libs.escpos.communication.Bluetooth;
@@ -32,7 +31,7 @@ public class Printer {
 	private final AbstractCommunication communication;
 
 	// トランザクション（一括送信）用のメモリバッファ
-	private ByteArrayOutputStream transactionBuffer = null;
+	private EscPos bufferEscPos = null;
 
 	// --- コンストラクタ群 ---
 
@@ -98,7 +97,7 @@ public class Printer {
 			return false;
 		communication.close();
 		synchronized (this) {
-			transactionBuffer = null;
+			bufferEscPos = null;
 		}
 		return true;
 	}
@@ -110,20 +109,20 @@ public class Printer {
 	 * 印刷データの組み立てを開始する前に呼び出すことで、途中のブツ切れを防ぎます。
 	 */
 	public synchronized void beginTransaction() {
-		transactionBuffer = new ByteArrayOutputStream();
+		bufferEscPos = new EscPos();
 	}
 
 	/**
 	 * 溜めた印刷データをプリンターへ一括送信（フラッシュ）します。
 	 */
 	public synchronized void commitTransaction() {
-		if (communication == null || transactionBuffer == null || transactionBuffer.size() == 0) {
-			transactionBuffer = null;
+		if (communication == null || bufferEscPos == null || bufferEscPos.size() == 0) {
+			bufferEscPos = null;
 			return;
 		}
 		// 溜まった全てのデータを送信プールへ投げる
-		communication.write(transactionBuffer.toByteArray());
-		transactionBuffer = null;
+		communication.write(bufferEscPos.toByteArray());
+		bufferEscPos = null;
 	}
 
 	/**
@@ -135,8 +134,8 @@ public class Printer {
 			return;
 
 		// トランザクション中であればメモリバッファに書き込む
-		if (transactionBuffer != null) {
-			transactionBuffer.write(data, 0, data.length);
+		if (bufferEscPos != null) {
+			bufferEscPos.write(data, 0, data.length);
 		} else {
 			// 即時送信
 			if (communication != null) {
